@@ -21,8 +21,15 @@ def registrar_evento(mensaje, es_error=False):
 #-----------------------------------------------------------------------#
 # Excepciones personalizadas para el software de gestión de servicios
 #-----------------------------------------------------------------------#
-class ErrorFJ(Exception):
+
+#Modificación 2, se agregan 4 excepciones descriptivas (Ingrith Toro)
+class ErrorSoftwareFJ(Exception):
+    """Clase base para los errores del sistema."""
     pass
+class ClienteInvalidoError(ErrorSoftwareFJ): pass
+class ServicioNoDisponibleError(ErrorSoftwareFJ): pass
+class ReservaInvalidaError(ErrorSoftwareFJ): pass
+class DatosFaltantesError(ErrorSoftwareFJ): pass
 
 #-----------------------------------------------------------------------#
 # Validacion de datos y clases base para el software de gestión de servicios
