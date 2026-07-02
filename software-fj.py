@@ -12,15 +12,24 @@ logging.basicConfig(
 )
  
 def registrar_evento(mensaje, es_error=False):
-    if es_error == True:        
+    if es_error:
         logging.error(mensaje)
-    if es_error == False:       
+#Modificación 1, se cambio if por else (Ingrith Toro)
+    else:              
         logging.info(mensaje)
+
 #-----------------------------------------------------------------------#
 # Excepciones personalizadas para el software de gestión de servicios
 #-----------------------------------------------------------------------#
-class ErrorFJ(Exception):
+
+#Modificación 2, se agregan 4 excepciones descriptivas (Ingrith Toro)
+class ErrorSoftwareFJ(Exception):
+    """Clase base para los errores del sistema."""
     pass
+class ClienteInvalidoError(ErrorSoftwareFJ): pass
+class ServicioNoDisponibleError(ErrorSoftwareFJ): pass
+class ReservaInvalidaError(ErrorSoftwareFJ): pass
+class DatosFaltantesError(ErrorSoftwareFJ): pass
 
 #-----------------------------------------------------------------------#
 # Validacion de datos y clases base para el software de gestión de servicios
@@ -37,21 +46,28 @@ class EntidadBase(ABC):
     def describir(self):
         pass
  
+#Modificación 3, Se agregan setters con validación de nombre (no vacío ni espacios) y de email (formato), (Ingrith Toro)
 class Cliente(EntidadBase):
     def __init__(self, id_cliente, nombre, email):
         super().__init__(id_cliente)
-        if nombre == "":        # <-- DEFECTO 3: solo revisa vacio,
-            raise ErrorFJ("Nombre vacio")  #   no valida email ni espacios
-        self._nombre = nombre
-        self._email = email
+        self.nombre = nombre   # pasa por el setter
+        self.email = email     # pasa por el setter
     @property
-    def nombre(self):
-        return self._nombre
+    def nombre(self): return self._nombre
+    @nombre.setter
+    def nombre(self, valor):
+        if not valor or not valor.strip():
+            raise ClienteInvalidoError("El nombre no puede estar vacio.")
+        self._nombre = valor
     @property
-    def email(self):
-        return self._email
+    def email(self): return self._email
+    @email.setter
+    def email(self, valor):
+        if "@" not in valor or "." not in valor:
+            raise ClienteInvalidoError(f"Correo invalido: '{valor}'")
+        self._email = valor
     def describir(self):
-        return "Cliente " + self._id_entidad + ": " + self._nombre
+        return f"Cliente {self.id_entidad}: {self.nombre} ({self.email})"
 
 #-----------------------------------------------------------------------#
 # Servicios y sus implementaciones para el software de gestión de servicios
@@ -69,11 +85,12 @@ class Servicio(EntidadBase):
 class ReservaSala(Servicio):
     def __init__(self, id_servicio, nombre_servicio, costo_base, capacidad):
         super().__init__(id_servicio, nombre_servicio, costo_base)
-        self.capacidad = capacidad
+        self.capacidad = capacidad      
+#Modificación 4, Se agrega validación de horas (mayor a cero), (Ingrith Toro)
     def calcular_costo(self, horas, descuento=0.0):
-        # DEFECTO 4: no valida que horas > 0 (acepta negativos)
-        total = (self.costo_base * horas) * (1 - descuento)
-        return total
+        if horas <= 0:
+            raise ReservaInvalidaError("Las horas deben ser mayores a cero.")
+        return round((self.costo_base * horas) * (1 - descuento), 2)
     def describir(self):
         return "Sala " + self.nombre_servicio
  
@@ -83,7 +100,7 @@ class AlquilerEquipo(Servicio):
         self.valor_seguro = valor_seguro
     def calcular_costo(self, dias, aplicar_seguro=False):
         total = self.costo_base * dias
-        if aplicar_seguro == True:    # <-- tambien DEFECTO 1 (== True)
+        if aplicar_seguro == True:
             total = total + self.valor_seguro
         return total
     def describir(self):
@@ -109,15 +126,15 @@ class Reserva(EntidadBase):
         self.cliente = cliente
         self.servicio = servicio
         self.duracion = duracion
-        self.estado = "Pendiente"     # <-- DEFECTO 5: atributo publico,
-        self.costo_total = 0.0        #     sin proteccion (encapsulacion)
+        self.estado = "Pendiente"     
+        self.costo_total = 0.0        
  
     def procesar_y_confirmar(self, **kwargs):
-        try:                          # <-- DEFECTO 6: falta else y finally
+        try:                          
             self.costo_total = self.servicio.calcular_costo(self.duracion, **kwargs)
             self.estado = "Confirmada"
             registrar_evento("Reserva " + self.id_entidad + " confirmada")
-        except:                       # <-- DEFECTO 7: except pelado,
+        except:                       
             registrar_evento("Error en reserva", True)  # sin tipo ni raise..from
  
     def cancelar(self):
@@ -136,9 +153,9 @@ clientes = []
 servicios = []
 reservas = []
  
-print("SIMULACIONES")          # <-- DEFECTO 9: mensajes pobres
+print("SIMULACIONES")          
 for caso in range(1, 11):
-    print("Caso " + str(caso)) # <-- DEFECTO 8: sin try/except/else/finally
+    print("Caso " + str(caso)) 
     if caso == 1:
         c = Cliente("C01", "Ingrith Toro", "ingrith@gmail.com")
         clientes.append(c)
@@ -165,7 +182,7 @@ for caso in range(1, 11):
         print("reserva: " + str(r.costo_total))
     elif caso == 6:
         r_err = Reserva("R02", clientes[0], servicios[2], -2)
-        r_err.procesar_y_confirmar()   # acepta horas negativas (defecto 4)
+        r_err.procesar_y_confirmar() 
         print("horas negativas: " + str(r_err.costo_total))
     elif caso == 7:
         r = reservas[0]
@@ -173,7 +190,7 @@ for caso in range(1, 11):
         print("cancelada: " + str(r.costo_total))
     elif caso == 8:
         r = reservas[0]
-        r.procesar_y_confirmar()   # reconfirma cancelada (no deberia)
+        r.procesar_y_confirmar()   
         print("reconfirmar: " + r.estado)
     elif caso == 9:
         r_eq = Reserva("R03", clientes[0], servicios[1], 3)
