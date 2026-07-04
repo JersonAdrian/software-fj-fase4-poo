@@ -12,10 +12,11 @@ logging.basicConfig(
 )
  
 def registrar_evento(mensaje, es_error=False):
-    if es_error == True:        
+    if es_error:
         logging.error(mensaje)
-    if es_error == False:       
+    else:
         logging.info(mensaje)
+
 #-----------------------------------------------------------------------#
 # Excepciones personalizadas para el software de gestión de servicios
 #-----------------------------------------------------------------------#
