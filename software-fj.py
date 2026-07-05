@@ -20,8 +20,17 @@ def registrar_evento(mensaje, es_error=False):
 #-----------------------------------------------------------------------#
 # Excepciones personalizadas para el software de gestión de servicios
 #-----------------------------------------------------------------------#
-class ErrorFJ(Exception):
+
+# Modificación, se reemplaza una única excepción genérica por una jerarquía de cuatro excepciones descriptivas
+# Ingrith Toro
+
+class ErrorSoftwareFJ(Exception):
+    """Clase base para los errores del sistema."""
     pass
+class ClienteInvalidoError(ErrorSoftwareFJ): pass
+class ServicioNoDisponibleError(ErrorSoftwareFJ): pass
+class ReservaInvalidaError(ErrorSoftwareFJ): pass
+class DatosFaltantesError(ErrorSoftwareFJ): pass
 
 #-----------------------------------------------------------------------#
 # Validacion de datos y clases base para el software de gestión de servicios
@@ -37,22 +46,30 @@ class EntidadBase(ABC):
     @abstractmethod
     def describir(self):
         pass
- 
+
+# Modificación, Se agregan setters con validación de nombre (no vacío ni espacios) y de email (formato). 
+# Ingrith Toro 
 class Cliente(EntidadBase):
     def __init__(self, id_cliente, nombre, email):
         super().__init__(id_cliente)
-        if nombre == "":        # <-- DEFECTO 3: solo revisa vacio,
-            raise ErrorFJ("Nombre vacio")  #   no valida email ni espacios
-        self._nombre = nombre
-        self._email = email
+        self.nombre = nombre   # pasa por el setter
+        self.email = email     # pasa por el setter
     @property
-    def nombre(self):
-        return self._nombre
+    def nombre(self): return self._nombre
+    @nombre.setter
+    def nombre(self, valor):
+        if not valor or not valor.strip():
+            raise ClienteInvalidoError("El nombre no puede estar vacio.")
+        self._nombre = valor
     @property
-    def email(self):
-        return self._email
+    def email(self): return self._email
+    @email.setter
+    def email(self, valor):
+        if "@" not in valor or "." not in valor:
+            raise ClienteInvalidoError(f"Correo invalido: '{valor}'")
+        self._email = valor
     def describir(self):
-        return "Cliente " + self._id_entidad + ": " + self._nombre
+        return f"Cliente {self.id_entidad}: {self.nombre} ({self.email})"
 
 #-----------------------------------------------------------------------#
 # Servicios y sus implementaciones para el software de gestión de servicios
@@ -72,9 +89,10 @@ class ReservaSala(Servicio):
         super().__init__(id_servicio, nombre_servicio, costo_base)
         self.capacidad = capacidad
     def calcular_costo(self, horas, descuento=0.0):
-        # DEFECTO 4: no valida que horas > 0 (acepta negativos)
-        total = (self.costo_base * horas) * (1 - descuento)
-        return total
+        # CORRECCIÓN COMMIT 3: Validar horas positivas y redondear
+        if horas <= 0:
+            raise ReservaInvalidaError("Las horas deben ser mayores a cero.")
+        return round((self.costo_base * horas) * (1 - descuento), 2)
     def describir(self):
         return "Sala " + self.nombre_servicio
  
@@ -83,20 +101,26 @@ class AlquilerEquipo(Servicio):
         super().__init__(id_servicio, nombre_servicio, costo_base)
         self.valor_seguro = valor_seguro
     def calcular_costo(self, dias, aplicar_seguro=False):
+        # CORRECCIÓN COMMIT 3: Validar dias positivos y redondear
+        if dias <= 0:
+            raise ReservaInvalidaError("Los dias deben ser mayores a cero.")
         total = self.costo_base * dias
-        if aplicar_seguro == True:    # <-- tambien DEFECTO 1 (== True)
+        if aplicar_seguro == True:
             total = total + self.valor_seguro
-        return total
+        return round(total, 2)
     def describir(self):
         return "Equipo " + self.nombre_servicio
  
 class AsesoriaEspecializada(Servicio):
     def __init__(self, id_servicio, nombre_servicio, costo_base, especialidad):
         super().__init__(id_servicio, nombre_servicio, costo_base)
-        self.especialidad = especialidad
+        self.especialidad = especial specialty = especialidad
     def calcular_costo(self, horas, tarifa_urgencia=0.0):
+        # CORRECCIÓN COMMIT 3: Validar horas positivas y redondear
+        if horas <= 0:
+            raise ReservaInvalidaError("Las horas deben ser mayores a cero.")
         total = (self.costo_base * horas) + tarifa_urgencia
-        return total
+        return round(total, 2)
     def describir(self):
         return "Asesoria " + self.especialidad
 
@@ -174,7 +198,7 @@ for caso in range(1, 11):
         print("cancelada: " + str(r.costo_total))
     elif caso == 8:
         r = reservas[0]
-        r.procesar_y_confirmar()   # reconfirma cancelada (no deberia)
+        r.procesar_y_confirmar() 
         print("reconfirmar: " + r.estado)
     elif caso == 9:
         r_eq = Reserva("R03", clientes[0], servicios[1], 3)
