@@ -46,7 +46,7 @@ class EntidadBase(ABC):
     @abstractmethod
     def describir(self):
         pass
- 
+
 class Cliente(EntidadBase):
     def __init__(self, id_cliente, nombre, email):
         super().__init__(id_cliente)
