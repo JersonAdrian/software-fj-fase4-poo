@@ -20,8 +20,17 @@ def registrar_evento(mensaje, es_error=False):
 #-----------------------------------------------------------------------#
 # Excepciones personalizadas para el software de gestión de servicios
 #-----------------------------------------------------------------------#
-class ErrorFJ(Exception):
+
+# Modificación, se reemplaza una única excepción genérica por una jerarquía de cuatro excepciones descriptivas
+# Ingrith Toro
+
+class ErrorSoftwareFJ(Exception):
+    """Clase base para los errores del sistema."""
     pass
+class ClienteInvalidoError(ErrorSoftwareFJ): pass
+class ServicioNoDisponibleError(ErrorSoftwareFJ): pass
+class ReservaInvalidaError(ErrorSoftwareFJ): pass
+class DatosFaltantesError(ErrorSoftwareFJ): pass
 
 #-----------------------------------------------------------------------#
 # Validacion de datos y clases base para el software de gestión de servicios
@@ -174,7 +183,7 @@ for caso in range(1, 11):
         print("cancelada: " + str(r.costo_total))
     elif caso == 8:
         r = reservas[0]
-        r.procesar_y_confirmar()   # reconfirma cancelada (no deberia)
+        r.procesar_y_confirmar() 
         print("reconfirmar: " + r.estado)
     elif caso == 9:
         r_eq = Reserva("R03", clientes[0], servicios[1], 3)
